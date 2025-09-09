@@ -1,56 +1,74 @@
 import streamlit as st
-from openai import OpenAI
+import google.generativeai as genai
+import sys
 
-# Show title and description.
-st.title("💬 Chatbot")
+# StreamlitのUI設定
+st.title("💬 Chatbot with Gemini Flash 2.5")
 st.write(
-    "This is a simple chatbot that uses OpenAI's GPT-3.5 model to generate responses. "
-    "To use this app, you need to provide an OpenAI API key, which you can get [here](https://platform.openai.com/account/api-keys). "
-    "You can also learn how to build this app step by step by [following our tutorial](https://docs.streamlit.io/develop/tutorials/llms/build-conversational-apps)."
+    "このシンプルなチャットボットは、GoogleのGemini Flash 2.5モデルを使用して応答を生成します。 "
+    "APIキーはStreamlitのsecrets.tomlファイルから読み込まれます。"
 )
 
-# Ask user for their OpenAI API key via `st.text_input`.
-# Alternatively, you can store the API key in `./.streamlit/secrets.toml` and access it
-# via `st.secrets`, see https://docs.streamlit.io/develop/concepts/connections/secrets-management
-openai_api_key = st.text_input("OpenAI API Key", type="password")
-if not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.", icon="🗝️")
-else:
+# secretsからAPIキーを読み込む
+try:
+    gemini_api_key = st.secrets["google_api_key"]
+except KeyError:
+    st.error("APIキーがStreamlitのsecretsに設定されていません。")
+    st.info(
+        "プロジェクトのルートディレクトリに`.streamlit/secrets.toml`ファイルを作成し、"
+        "以下の形式でAPIキーを追加してください。\n\n"
+        "```toml\n"
+        "google_api_key = \"AIzaSyC_x-mBMSL9ZTgXEeDLWALelSYF_2I8uf4\"\n"
+        "```"
+    )
+    st.stop()
 
-    # Create an OpenAI client.
-    client = OpenAI(api_key=openai_api_key)
+# Gemini APIクライアントの初期化
+genai.configure(api_key=gemini_api_key)
+model = genai.GenerativeModel('gemini-2.5-flash-preview-05-20')
 
-    # Create a session state variable to store the chat messages. This ensures that the
-    # messages persist across reruns.
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+# メッセージを保存するためのセッション状態変数の作成
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-    # Display the existing chat messages via `st.chat_message`.
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+# 既存のチャットメッセージの表示
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-    # Create a chat input field to allow the user to enter a message. This will display
-    # automatically at the bottom of the page.
-    if prompt := st.chat_input("What is up?"):
+# ユーザー入力のチャットフィールド
+if prompt := st.chat_input("何ができますか？"):
 
-        # Store and display the current prompt.
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+    # ユーザーのプロンプトを保存して表示
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-        # Generate a response using the OpenAI API.
-        stream = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
-            ],
-            stream=True,
+    try:
+        # Gemini APIに渡すためにメッセージ形式を変換
+        history = []
+        for msg in st.session_state.messages:
+            role = "user" if msg["role"] == "user" else "model"
+            history.append({'role': role, 'parts': [msg["content"]]})
+
+        # Gemini APIを使用して応答を生成（ストリーミング）
+        response_stream = model.generate_content(
+            history,
+            stream=True
         )
 
-        # Stream the response to the chat using `st.write_stream`, then store it in 
-        # session state.
+        # 応答をチャットにストリーミング表示し、セッション状態に保存
         with st.chat_message("assistant"):
-            response = st.write_stream(stream)
-        st.session_state.messages.append({"role": "assistant", "content": response})
+            response_text = ""
+            for chunk in response_stream:
+                if chunk.parts:
+                    text_part = chunk.parts[0].text
+                    response_text += text_part
+                    st.write(response_text)
+
+            st.session_state.messages.append({"role": "assistant", "content": response_text})
+
+    except Exception as e:
+        st.error("エラーが発生しました。詳細はコンソールを確認してください。")
+        print(f"エラーの詳細: {e}", file=sys.stderr)
+        st.session_state.messages.append({"role": "assistant", "content": "申し訳ありません、応答の生成中にエラーが発生しました。"})
