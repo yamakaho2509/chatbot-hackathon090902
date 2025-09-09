@@ -16,9 +16,9 @@ except ImportError:
     st.stop()
 
 # StreamlitのUI設定
-st.title("💬 Chatbot with Gemini Flash 2.5 (Document Q&A)")
+st.title("💬 Chatbotと今日1日を振り返ろう！")
 st.write(
-    "ドキュメントをアップロードすると、その内容に関する質問に答えるチャットボットです。"
+    "TXTもしくはDOCX形式の日記をアップロードすると、その内容に関する対話ができるチャットボットです！"
 )
 
 # secretsからAPIキーを読み込む
