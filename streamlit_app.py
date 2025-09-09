@@ -1,5 +1,7 @@
-import streamlit as st
+mport streamlit as st
 import sys
+import io
+import docx
 
 # 必要なライブラリのインポートを試行
 try:
@@ -120,8 +122,8 @@ else:
             history = []
             
             # === ここでドキュメントの内容をシステム指示として最初のコンテキストに追加 ===
-            # 対話終了の指示を追加
-            document_context = f"あなたは優秀なインストラクショナル・デザイナーであり、孤独の中独学をする成人学習者の自己成長を支援するコーチとしての役割を担う親しみやすいチャットボットです。ユーザーの学習日記を読み、共感を示しながら、その日の出来事や感情についてさらに深く掘り下げるような質問をしてください。結論やアドバイスを急ぐのではなく、ユーザー自身が気づきを得られるように対話を導いてください。この対話は最大5回のラリー（ユーザーの質問とあなたの応答のペア）で終えるようにしてください。最後の応答では、必ず対話の終了を告げるメッセージを加えてください。\nドキュメント:\n{st.session_state.document_content}"
+            # 対話終了と総括・フィードバックの指示を追加
+            document_context = f"あなたは優秀なインストラクショナル・デザイナーであり、孤独の中独学をする成人学習者の自己成長を支援するコーチとしての役割を担う親しみやすいチャットボットです。ユーザーの学習日記を読み、共感を示しながら、その日の出来事や感情についてさらに深く掘り下げるような質問をしてください。結論やアドバイスを急ぐのではなく、ユーザー自身が気づきを得られるように対話を導いてください。この対話は最大5回のラリー（ユーザーの質問とあなたの応答のペア）で終えるようにしてください。最後の応答では、必ず対話の終了を告げ、**その日の学習の総括と簡単なフィードバック**を加えてください。\nドキュメント:\n{st.session_state.document_content}"
             history.append({'role': 'user', 'parts': [document_context]})
             
             # === 既存のチャット履歴も追加 ===
@@ -158,3 +160,24 @@ else:
             st.error("エラーが発生しました。詳細はコンソールを確認してください。")
             print(f"エラーの詳細: {e}", file=sys.stderr)
             st.session_state.messages.append({"role": "assistant", "content": "申し訳ありません、応答の生成中にエラーが発生しました。"})
+
+    # === Wordファイル出力ボタンの追加 ===
+    doc = docx.Document()
+    doc.add_heading('今日の振り返り', 0)
+    for message in st.session_state.messages:
+        if message["role"] == "user":
+            doc.add_paragraph(f"ユーザー: {message['content']}")
+        else:
+            doc.add_paragraph(f"チャットボット: {message['content']}")
+
+    # メモリ上でdocxファイルを生成
+    doc_io = io.BytesIO()
+    doc.save(doc_io)
+    doc_io.seek(0)
+
+    st.download_button(
+        label="振り返りドキュメントをダウンロード",
+        data=doc_io,
+        file_name="振り返り.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
