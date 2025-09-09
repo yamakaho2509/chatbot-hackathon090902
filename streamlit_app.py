@@ -75,6 +75,21 @@ if uploaded_file is not None:
             st.success("ドキュメントが正常にアップロードされました。")
             st.session_state.messages = [] # 新しいドキュメントがアップロードされたらチャット履歴をリセット
             st.info("これで、ドキュメントの内容について質問できます。")
+            
+            # === ここに最初の質問を生成するロジックを追加 ===
+            initial_prompt = f"これからあなたの学習をサポートします。今日の学習日記を拝見しました。\n\nドキュメント:\n{document_content}\n\nまずは、この日の学習で一番印象に残っていることについて教えていただけますか？"
+            
+            with st.spinner("思考中です..."):
+                response = model.generate_content(
+                    initial_prompt,
+                    stream=False # 最初の一回はストリーミングではなくてよい
+                )
+                
+            assistant_message = response.text
+            st.session_state.messages.append({"role": "assistant", "content": assistant_message})
+
+            st.rerun() # UIを再描画してチャットを表示
+
         except Exception as e:
             st.error(f"ファイルの読み込み中にエラーが発生しました: {e}")
 
@@ -99,7 +114,7 @@ else:
             # Gemini APIに渡すためにメッセージ形式を変換
             history = []
             
-            # === ドキュメントの内容をシステム指示として最初のコンテキストに追加 ===
+            # === ここでドキュメントの内容をシステム指示として最初のコンテキストに追加 ===
             document_context = f"あなたは優秀なインストラクショナル・デザイナーであり、孤独の中独学をする成人学習者の自己成長を支援するコーチとしての役割を担う親しみやすいチャットボットです。ユーザーの学習日記を読み、共感を示しながら、その日の出来事や感情についてさらに深く掘り下げるような質問をしてください。結論やアドバイスを急ぐのではなく、ユーザー自身が気づきを得られるように対話を導いてください。\nドキュメント:\n{st.session_state.document_content}"
             history.append({'role': 'user', 'parts': [document_context]})
             
