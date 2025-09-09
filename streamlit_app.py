@@ -98,11 +98,12 @@ else:
         try:
             # Gemini APIに渡すためにメッセージ形式を変換
             history = []
-            # === ここでドキュメントの内容をシステム指示として追加 ===
+            
+            # === ドキュメントの内容をシステム指示として最初のコンテキストに追加 ===
             document_context = f"以下のドキュメントの内容に基づいて、ユーザーの質問に答えてください。\nドキュメント:\n{st.session_state.document_content}"
             history.append({'role': 'user', 'parts': [document_context]})
             
-            # 既存のチャット履歴も追加
+            # === 既存のチャット履歴も追加 ===
             for msg in st.session_state.messages:
                 if isinstance(msg, dict) and "role" in msg and "content" in msg:
                     role = "user" if msg["role"] == "user" else "model"
