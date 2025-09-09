@@ -1,6 +1,18 @@
 import streamlit as st
-import google.generativeai as genai
 import sys
+
+# google-generativeaiモジュールのインポートを試行
+try:
+    import google.generativeai as genai
+except ImportError:
+    st.error(
+        "必要なライブラリが見つかりません。以下のコマンドでインストールしてください："
+    )
+    st.code("pip install google-generativeai")
+    st.info(
+        "ターミナルでこのコマンドを実行し、アプリを再起動してください。"
+    )
+    st.stop()
 
 # StreamlitのUI設定
 st.title("💬 Chatbot with Gemini Flash 2.5")
@@ -12,14 +24,17 @@ st.write(
 # secretsからAPIキーを読み込む
 try:
     gemini_api_key = st.secrets["google_api_key"]
+    if not gemini_api_key:
+        raise KeyError
 except KeyError:
     st.error("APIキーがStreamlitのsecretsに設定されていません。")
     st.info(
         "プロジェクトのルートディレクトリに`.streamlit/secrets.toml`ファイルを作成し、"
         "以下の形式でAPIキーを追加してください。\n\n"
         "```toml\n"
-        "google_api_key = \"AIzaSyC_x-mBMSL9ZTgXEeDLWALelSYF_2I8uf4\"\n"
+        "google_api_key = \"YOUR_API_KEY_HERE\"\n"
         "```"
+        "\n`YOUR_API_KEY_HERE`を実際のAPIキーに置き換えてください。"
     )
     st.stop()
 
@@ -58,15 +73,17 @@ if prompt := st.chat_input("何ができますか？"):
         )
 
         # 応答をチャットにストリーミング表示し、セッション状態に保存
+        full_response = ""
         with st.chat_message("assistant"):
-            response_text = ""
+            message_placeholder = st.empty()
             for chunk in response_stream:
                 if chunk.parts:
                     text_part = chunk.parts[0].text
-                    response_text += text_part
-                    st.write(response_text)
-
-            st.session_state.messages.append({"role": "assistant", "content": response_text})
+                    full_response += text_part
+                    message_placeholder.markdown(full_response + "▌")
+            message_placeholder.markdown(full_response)
+        
+        st.session_state.messages.append({"role": "assistant", "content": full_response})
 
     except Exception as e:
         st.error("エラーが発生しました。詳細はコンソールを確認してください。")
