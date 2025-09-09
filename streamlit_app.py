@@ -63,7 +63,7 @@ if prompt := st.chat_input("何ができますか？"):
         # Gemini APIに渡すためにメッセージ形式を変換
         history = []
         for msg in st.session_state.messages:
-            role = "user" if msg["role"] == "user" else "model"
+            role = "user" if msg["role"] == "user"] else "model"
             history.append({'role': role, 'parts': [msg["content"]]})
 
         # Gemini APIを使用して応答を生成（ストリーミング）
