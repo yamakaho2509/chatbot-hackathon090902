@@ -18,7 +18,7 @@ except ImportError:
     st.stop()
 
 # StreamlitのUI設定
-st.title("💬 Chatbotと今日1日を振り返ろう！")
+st.title("💬 Chatbotと今日の学びを振り返ろう！")
 st.write(
     "TXTもしくはDOCX形式の学習日記をアップロードすると、その内容に関する対話ができるチャットボットです！"
 )
