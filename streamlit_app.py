@@ -18,7 +18,7 @@ except ImportError:
     st.stop()
 
 # StreamlitのUI設定
-st.title("💬 Chatbotと今日の学びを振り返ろう！")
+st.title("💬 Chatbotと今日1日を振り返ろう！")
 st.write(
     "TXTもしくはDOCX形式の学習日記をアップロードすると、その内容に関する対話ができるチャットボットです！"
 )
@@ -203,24 +203,25 @@ KellerのARCS-Vモデルは、学習意欲を高めるためのフレームワ�
             st.error("エラーが発生しました。詳細はコンソールを確認してください。")
             print(f"エラーの詳細: {e}", file=sys.stderr)
             st.session_state.messages.append({"role": "assistant", "content": "申し訳ありません、応答の生成中にエラーが発生しました。"})
+    
+    # === Wordファイル出力ボタンの追加 (対話が終了した場合のみ表示) ===
+    if len(st.session_state.messages) >= 10:
+        doc = docx.Document()
+        doc.add_heading('今日の振り返り', 0)
+        for message in st.session_state.messages:
+            if message["role"] == "user":
+                doc.add_paragraph(f"ユーザー: {message['content']}")
+            else:
+                doc.add_paragraph(f"チャットボット: {message['content']}")
 
-    # === Wordファイル出力ボタンの追加 ===
-    doc = docx.Document()
-    doc.add_heading('今日の振り返り', 0)
-    for message in st.session_state.messages:
-        if message["role"] == "user":
-            doc.add_paragraph(f"ユーザー: {message['content']}")
-        else:
-            doc.add_paragraph(f"チャットボット: {message['content']}")
+        # メモリ上でdocxファイルを生成
+        doc_io = io.BytesIO()
+        doc.save(doc_io)
+        doc_io.seek(0)
 
-    # メモリ上でdocxファイルを生成
-    doc_io = io.BytesIO()
-    doc.save(doc_io)
-    doc_io.seek(0)
-
-    st.download_button(
-        label="振り返りドキュメントをダウンロード",
-        data=doc_io,
-        file_name="振り返り.docx",
-        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    )
+        st.download_button(
+            label="振り返りドキュメントをダウンロード",
+            data=doc_io,
+            file_name="振り返り.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
