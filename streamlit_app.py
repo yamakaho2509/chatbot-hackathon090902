@@ -231,4 +231,4 @@ KellerのARCS-Vモデルは、学習意欲を高めるためのフレームワ�
             data=doc_io,
             file_name="振り返り.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        )
+        
